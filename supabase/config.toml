@@ -1,0 +1,31 @@
+project_id = "irlxpxoqderbkeconjyq"
+
+[functions.scrape-news]
+verify_jwt = false
+
+[functions.generate-linkedin-post]
+verify_jwt = false
+
+[functions.transcribe-video]
+verify_jwt = false
+
+[functions.generate-presentation]
+verify_jwt = false
+
+[functions.parse-template]
+verify_jwt = false
+
+[functions.generate-slide-image]
+verify_jwt = false
+
+[functions.generate-meeting-notes]
+verify_jwt = false
+
+[functions.generate-article]
+verify_jwt = false
+
+[functions.generate-newsletter]
+verify_jwt = false
+
+[functions.generate-personal-message]
+verify_jwt = false

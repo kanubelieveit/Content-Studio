@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Premium navy & gold palette inspired by Wesslau */
+    --background: 220 20% 97%;
+    --foreground: 220 40% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 13%;
+
+    --primary: 215 80% 22%;
+    --primary-foreground: 45 30% 96%;
+
+    --secondary: 220 15% 93%;
+    --secondary-foreground: 220 40% 13%;
+
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 38 60% 52%;
+    --accent-foreground: 220 40% 10%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 215 80% 22%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gradient-hero: linear-gradient(135deg, hsl(215, 80%, 22%) 0%, hsl(215, 60%, 32%) 50%, hsl(200, 50%, 35%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 20%, 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(38, 60%, 52%) 0%, hsl(32, 70%, 58%) 100%);
+    --shadow-card: 0 1px 3px hsl(220 20% 13% / 0.04), 0 4px 16px hsl(220 20% 13% / 0.06);
+    --shadow-elevated: 0 4px 12px hsl(220 20% 13% / 0.06), 0 12px 40px hsl(220 20% 13% / 0.1);
+    --shadow-glow: 0 0 20px hsl(38 60% 52% / 0.15);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 40% 13%;
+    --sidebar-primary: 215 80% 22%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 94%;
+    --sidebar-accent-foreground: 220 40% 13%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 215 80% 22%;
+  }
+
+  .dark {
+    --background: 220 30% 6%;
+    --foreground: 220 10% 93%;
+
+    --card: 220 25% 10%;
+    --card-foreground: 220 10% 93%;
+
+    --popover: 220 25% 10%;
+    --popover-foreground: 220 10% 93%;
+
+    --primary: 215 50% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 15%;
+    --secondary-foreground: 220 10% 93%;
+
+    --muted: 220 20% 14%;
+    --muted-foreground: 220 8% 55%;
+
+    --accent: 38 50% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 16%;
+    --input: 220 20% 16%;
+    --ring: 215 50% 55%;
+
+    --sidebar-background: 220 30% 8%;
+    --sidebar-foreground: 220 10% 93%;
+    --sidebar-primary: 215 50% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 13%;
+    --sidebar-accent-foreground: 220 10% 93%;
+    --sidebar-border: 220 20% 13%;
+    --sidebar-ring: 215 50% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .card-premium {
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid hsl(var(--border));
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+
+  .card-premium:hover {
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-1px);
+  }
+
+  .badge-gold {
+    background: var(--gradient-accent);
+    color: hsl(220, 40%, 10%);
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+  }
+
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .text-gradient {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .divider-accent {
+    height: 3px;
+    width: 48px;
+    background: var(--gradient-accent);
+    border-radius: 100px;
+  }
+}
