@@ -7,7 +7,10 @@
       "Bash(python -m markitdown \"C:\\\\Users\\\\chrbe\\\\Downloads\\\\Presentation om återvinning.pptx\")",
       "Bash(pip install *)",
       "Read(//c/Users/chrbe/Downloads/**)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(supabase --version)",
+      "Bash(npm install *)",
+      "Bash(npx supabase *)"
     ]
   }
 }

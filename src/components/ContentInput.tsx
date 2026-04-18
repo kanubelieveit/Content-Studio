@@ -60,25 +60,13 @@ export function ContentInput({
     setTranscript("");
     setTranscriptNote("");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-video`,
-        {
-          method: "POST",
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: formData,
-        }
-      );
-      const data = await response.json();
-      if (data?.transcript) {
-        setTranscript(fixTranscriptErrors(data.transcript));
+      const { transcribeAudio } = await import("@/lib/ai-services");
+      const text = await transcribeAudio(file, file.name);
+      if (text) {
+        setTranscript(fixTranscriptErrors(text));
         toast({ title: "Transkribering klar! 🎉" });
       } else {
-        toast({ title: "Fel", description: data?.error || "Transkribering misslyckades.", variant: "destructive" });
+        toast({ title: "Fel", description: "Transkribering returnerade tom text.", variant: "destructive" });
       }
     } catch (err) {
       console.error(err);
@@ -257,19 +245,14 @@ export function ContentInput({
     setTranscript("");
     setTranscriptNote(withMic ? "Transkriberad från mötesinspelning (flik + mikrofon)" : "Transkriberad från flikljud-inspelning");
     try {
-      const formData = new FormData();
-      formData.append("file", recordedBlob, `recording.${recordedExt}`);
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-video`,
-        { method: "POST", headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }, body: formData }
-      );
-      const data = await response.json();
-      if (data?.transcript) {
-        setTranscript(fixTranscriptErrors(data.transcript));
-        await saveRecordingBundle(recordedBlob, recordedExt, data.transcript, withMic, recordingTitle);
+      const { transcribeAudio } = await import("@/lib/ai-services");
+      const text = await transcribeAudio(recordedBlob, `recording.${recordedExt}`);
+      if (text) {
+        setTranscript(fixTranscriptErrors(text));
+        await saveRecordingBundle(recordedBlob, recordedExt, fixTranscriptErrors(text), withMic, recordingTitle);
         toast({ title: "Transkribering klar & sparad! 🎉", description: dirHandleRef.current ? `Sparat i mappen: ${dirHandleRef.current.name}` : "ZIP med ljud och text har laddats ner." });
       } else {
-        toast({ title: "Fel", description: data?.error || "Transkribering misslyckades.", variant: "destructive" });
+        toast({ title: "Fel", description: "Transkribering returnerade tom text.", variant: "destructive" });
       }
     } catch {
       toast({ title: "Fel", description: "Kunde inte transkribera inspelningen.", variant: "destructive" });

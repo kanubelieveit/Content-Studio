@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { generatePresentation, textToSpeech } from "@/lib/ai-services";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,15 +66,8 @@ export function PresentationTab({ source }: PresentationTabProps) {
     setIsGenerating(true);
     setPresentation(null);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-presentation", {
-        body: { transcript: source, instructions: instructions.trim() || undefined },
-      });
-      if (error) throw error;
-      if (!data?.success) {
-        toast({ title: "Fel", description: data?.error || "Kunde inte generera presentation.", variant: "destructive" });
-        return;
-      }
-      setPresentation(data.presentation);
+      const presentation = await generatePresentation(source, instructions.trim() || undefined);
+      setPresentation(presentation);
       toast({ title: "Presentation skapad! 🎓" });
     } catch (err) {
       console.error(err);
@@ -120,29 +113,9 @@ export function PresentationTab({ source }: PresentationTabProps) {
         setExportProgress(25 + Math.round((i / totalSlides) * 65));
 
         try {
-          const ttsResp = await fetch(
-            `https://api.elevenlabs.io/v1/text-to-speech/${voiceId.trim()}`,
-            {
-              method: "POST",
-              headers: {
-                "xi-api-key": import.meta.env.VITE_ELEVENLABS_API_KEY,
-                "Content-Type": "application/json",
-                "Accept": "audio/mpeg",
-              },
-              body: JSON.stringify({
-                text: slide.speakerNotes.trim().replace(/\bAB\s*06\b/g, "ABT 06"),
-                model_id: "eleven_multilingual_v2",
-                voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-              }),
-            }
-          );
-          if (ttsResp.ok) {
-            const audioBlob = await ttsResp.blob();
-            const num = String(i + 1).padStart(2, "0");
-            audioFiles.push({ name: `slide_${num}_${slideTitle}.mp3`, blob: audioBlob });
-          } else {
-            console.warn(`TTS failed for slide ${i + 1}`);
-          }
+          const audioBlob = await textToSpeech(slide.speakerNotes, voiceId.trim());
+          const num = String(i + 1).padStart(2, "0");
+          audioFiles.push({ name: `slide_${num}_${slideTitle}.mp3`, blob: audioBlob });
         } catch (e) {
           console.warn(`TTS error for slide ${i + 1}:`, e);
         }
