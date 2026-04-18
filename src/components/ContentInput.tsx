@@ -44,6 +44,9 @@ export function ContentInput({
 
   const TEMPLATE_URL = "https://irlxpxoqderbkeconjyq.supabase.co/storage/v1/object/public/template-assets/PPT_mall-4.pptx";
 
+  const fixTranscriptErrors = (text: string) =>
+    text.replace(/\bAB\s*06\b/g, "ABT 06");
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
@@ -72,7 +75,7 @@ export function ContentInput({
       );
       const data = await response.json();
       if (data?.transcript) {
-        setTranscript(data.transcript);
+        setTranscript(fixTranscriptErrors(data.transcript));
         toast({ title: "Transkribering klar! 🎉" });
       } else {
         toast({ title: "Fel", description: data?.error || "Transkribering misslyckades.", variant: "destructive" });
@@ -262,7 +265,7 @@ export function ContentInput({
       );
       const data = await response.json();
       if (data?.transcript) {
-        setTranscript(data.transcript);
+        setTranscript(fixTranscriptErrors(data.transcript));
         await saveRecordingBundle(recordedBlob, recordedExt, data.transcript, withMic, recordingTitle);
         toast({ title: "Transkribering klar & sparad! 🎉", description: dirHandleRef.current ? `Sparat i mappen: ${dirHandleRef.current.name}` : "ZIP med ljud och text har laddats ner." });
       } else {

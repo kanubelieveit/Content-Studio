@@ -39,7 +39,7 @@ export function PresentationTab({ source }: PresentationTabProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportStatus, setExportStatus] = useState("");
-  const [voiceId, setVoiceId] = useState(() => localStorage.getItem("edu_voiceId") || "");
+  const [voiceId, setVoiceId] = useState(() => localStorage.getItem("edu_voiceId") || "FzF9ACIefsb6wbrYVjf1");
   const [savedirName, setSavedirName] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeVariant>("blue");
   const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
@@ -121,15 +121,19 @@ export function PresentationTab({ source }: PresentationTabProps) {
 
         try {
           const ttsResp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/text-to-speech`,
+            `https://api.elevenlabs.io/v1/text-to-speech/${voiceId.trim()}`,
             {
               method: "POST",
               headers: {
+                "xi-api-key": import.meta.env.VITE_ELEVENLABS_API_KEY,
                 "Content-Type": "application/json",
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                "Accept": "audio/mpeg",
               },
-              body: JSON.stringify({ text: slide.speakerNotes, voiceId: voiceId.trim() }),
+              body: JSON.stringify({
+                text: slide.speakerNotes.trim().replace(/\bAB\s*06\b/g, "ABT 06"),
+                model_id: "eleven_multilingual_v2",
+                voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+              }),
             }
           );
           if (ttsResp.ok) {
