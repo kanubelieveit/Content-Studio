@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Mic, Loader2, FileUp, Presentation } from "lucide-react";
+import { Upload, Mic, Loader2, FileUp, Presentation, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface ContentInputProps {
   transcript: string;
@@ -29,8 +30,13 @@ export function ContentInput({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [recordingPhase, setRecordingPhase] = useState<"idle" | "recording" | "processing" | "transcribing">("idle");
+  const [recordingPhase, setRecordingPhase] = useState<"idle" | "recording" | "processing" | "ready" | "transcribing">("idle");
   const [recordedSize, setRecordedSize] = useState(0);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedExt, setRecordedExt] = useState<string>("webm");
+  const [savedirName, setSavedirName] = useState<string | null>(null);
+  const [recordingTitle, setRecordingTitle] = useState<string>("");
+  const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -205,32 +211,11 @@ export function ContentInput({
           setRecordingPhase("idle");
           return;
         }
+        const ext = mediaRecorder.mimeType.includes("webm") ? "webm" : "mp4";
+        setRecordedBlob(audioBlob);
+        setRecordedExt(ext);
         setIsRecording(false);
-        setRecordingPhase("transcribing");
-        setIsTranscribing(true);
-        setTranscript("");
-        setTranscriptNote(withMic ? "Transkriberad från mötesinspelning (flik + mikrofon)" : "Transkriberad från flikljud-inspelning");
-        try {
-          const ext = mediaRecorder.mimeType.includes("webm") ? "webm" : "mp4";
-          const formData = new FormData();
-          formData.append("file", audioBlob, `recording.${ext}`);
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-video`,
-            { method: "POST", headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }, body: formData }
-          );
-          const data = await response.json();
-          if (data?.transcript) {
-            setTranscript(data.transcript);
-            toast({ title: "Transkribering klar! 🎉" });
-          } else {
-            toast({ title: "Fel", description: data?.error || "Transkribering misslyckades.", variant: "destructive" });
-          }
-        } catch {
-          toast({ title: "Fel", description: "Kunde inte transkribera inspelningen.", variant: "destructive" });
-        } finally {
-          setIsTranscribing(false);
-          setRecordingPhase("idle");
-        }
+        setRecordingPhase("ready");
       };
       displayStream.getTracks().forEach((track) => {
         track.onended = () => { if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop(); };
@@ -249,6 +234,91 @@ export function ContentInput({
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
     if (streamRef.current) { streamRef.current.getTracks().forEach((track) => track.stop()); streamRef.current = null; }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+
+  const downloadRecording = () => {
+    if (!recordedBlob) return;
+    const url = URL.createObjectURL(recordedBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inspelning_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, "-")}.${recordedExt}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Ljudfil nedladdad" });
+  };
+
+  const transcribeRecording = async (withMic: boolean) => {
+    if (!recordedBlob) return;
+    setRecordingPhase("transcribing");
+    setIsTranscribing(true);
+    setTranscript("");
+    setTranscriptNote(withMic ? "Transkriberad från mötesinspelning (flik + mikrofon)" : "Transkriberad från flikljud-inspelning");
+    try {
+      const formData = new FormData();
+      formData.append("file", recordedBlob, `recording.${recordedExt}`);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-video`,
+        { method: "POST", headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }, body: formData }
+      );
+      const data = await response.json();
+      if (data?.transcript) {
+        setTranscript(data.transcript);
+        await saveRecordingBundle(recordedBlob, recordedExt, data.transcript, withMic, recordingTitle);
+        toast({ title: "Transkribering klar & sparad! 🎉", description: dirHandleRef.current ? `Sparat i mappen: ${dirHandleRef.current.name}` : "ZIP med ljud och text har laddats ner." });
+      } else {
+        toast({ title: "Fel", description: data?.error || "Transkribering misslyckades.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Fel", description: "Kunde inte transkribera inspelningen.", variant: "destructive" });
+    } finally {
+      setIsTranscribing(false);
+      setRecordingPhase("idle");
+      setRecordedBlob(null);
+    }
+  };
+
+  const pickSaveDir = async () => {
+    try {
+      const handle = await (window as any).showDirectoryPicker({ mode: "readwrite" });
+      dirHandleRef.current = handle;
+      setSavedirName(handle.name);
+      toast({ title: "Sparmapp vald", description: `Sparar till: ${handle.name}` });
+    } catch {
+      // user cancelled
+    }
+  };
+
+  const saveRecordingBundle = async (audioBlob: Blob, ext: string, transcriptText: string, withMic: boolean, title: string) => {
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const safeName = title.trim().replace(/[\\/:*?"<>|]/g, "_").slice(0, 60);
+    const folderName = safeName ? `${timestamp}_${safeName}` : `inspelning_${timestamp}`;
+    const meta = withMic ? "Källa: Flikljud + mikrofon" : "Källa: Flikljud";
+    const transcriptContent = `${meta}\nDatum: ${new Date().toLocaleString("sv-SE")}\n\n${transcriptText}`;
+
+    if (dirHandleRef.current) {
+      const subDir = await dirHandleRef.current.getDirectoryHandle(folderName, { create: true });
+      const audioFile = await subDir.getFileHandle(`audio.${ext}`, { create: true });
+      const audioWriter = await audioFile.createWritable();
+      await audioWriter.write(audioBlob);
+      await audioWriter.close();
+      const txtFile = await subDir.getFileHandle("transkribering.txt", { create: true });
+      const txtWriter = await txtFile.createWritable();
+      await txtWriter.write(transcriptContent);
+      await txtWriter.close();
+    } else {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const folder = zip.folder(folderName)!;
+      folder.file(`audio.${ext}`, audioBlob);
+      folder.file("transkribering.txt", transcriptContent);
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${folderName}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -271,14 +341,30 @@ export function ContentInput({
           <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">eller spela in ljud</span></div>
         </div>
 
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={pickSaveDir}>
+            <Download className="h-4 w-4 mr-2" />
+            {savedirName ? `Sparmapp: ${savedirName}` : "Välj sparmapp"}
+          </Button>
+          {savedirName && <span className="text-xs text-muted-foreground">Filer sparas direkt till disk</span>}
+        </div>
+
         {recordingPhase === "idle" && !isRecording ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button variant="outline" className="py-6" onClick={() => startRecording(false)} disabled={isTranscribing}>
-              <Mic className="h-5 w-5 mr-2" /> Spela in flikljud
-            </Button>
-            <Button variant="outline" className="py-6" onClick={() => startRecording(true)} disabled={isTranscribing}>
-              <Mic className="h-5 w-5 mr-2" /> Spela in möte (flik + mikrofon)
-            </Button>
+          <div className="space-y-3">
+            <Input
+              placeholder="Föreläsningens titel (används som mappnamn)"
+              value={recordingTitle}
+              onChange={(e) => setRecordingTitle(e.target.value)}
+              disabled={isTranscribing}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button variant="outline" className="py-6" onClick={() => startRecording(false)} disabled={isTranscribing}>
+                <Mic className="h-5 w-5 mr-2" /> Spela in flikljud
+              </Button>
+              <Button variant="outline" className="py-6" onClick={() => startRecording(true)} disabled={isTranscribing}>
+                <Mic className="h-5 w-5 mr-2" /> Spela in möte (flik + mikrofon)
+              </Button>
+            </div>
           </div>
         ) : recordingPhase === "recording" ? (
           <div className="rounded-xl border-2 border-destructive/50 bg-destructive/5 p-5 space-y-3">
@@ -288,7 +374,22 @@ export function ContentInput({
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive" />
               </span>
               <span className="text-sm font-medium flex-1">Spelar in... <span className="font-mono text-base">{formatTime(recordingTime)}</span></span>
-              <Button variant="destructive" size="sm" onClick={stopRecording}>Stoppa & transkribera</Button>
+              <Button variant="destructive" size="sm" onClick={stopRecording}>Stoppa inspelning</Button>
+            </div>
+          </div>
+        ) : recordingPhase === "ready" ? (
+          <div className="rounded-xl border-2 border-green-500/50 bg-green-50/50 p-5 space-y-3">
+            <p className="text-sm font-medium">Inspelning klar ({(recordedSize / 1024 / 1024).toFixed(1)} MB)</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => transcribeRecording(false)}>
+                Transkribera & spara allt (ZIP)
+              </Button>
+              <Button variant="outline" size="sm" onClick={downloadRecording}>
+                <Download className="h-4 w-4 mr-2" /> Bara ljudfilen
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setRecordingPhase("idle"); setRecordedBlob(null); }}>
+                Kasta bort
+              </Button>
             </div>
           </div>
         ) : (recordingPhase === "processing" || recordingPhase === "transcribing") ? (

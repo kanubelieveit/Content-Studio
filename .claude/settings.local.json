@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(gh auth *)",
-      "Bash(git --version)"
+      "Bash(git --version)",
+      "Bash(python -m markitdown \"C:\\\\Users\\\\chrbe\\\\Downloads\\\\Presentation om återvinning.pptx\")",
+      "Bash(pip install *)",
+      "Read(//c/Users/chrbe/Downloads/**)",
+      "Bash(python -c ' *)"
     ]
   }
 }

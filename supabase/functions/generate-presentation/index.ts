@@ -28,42 +28,57 @@ serve(async (req) => {
       );
     }
 
-const systemPrompt = `Du är en expert på att omvandla transkript till praktiskt inriktade presentationer på svenska, riktade till byggnadsentreprenörer och verksamma i byggbranschen. Publiken är byggare och projektledare — inte jurister.
+const systemPrompt = `Du är en expert på att skapa originalt utbildningsmaterial för entreprenadjurister och jurister inom entreprenadbranschen. Du omvandlar föreläsningsinnehåll till eget pedagogiskt material som inte bryter mot upphovsrätt — du skapar ny text som förmedlar samma kunskap på ett nytt sätt.
 
-KRITISKT VIKTIGT: Du ska ENBART använda information som finns i transkriptet. Hitta ALDRIG PÅ egna fakta, exempel eller påståenden. Allt innehåll i slides och talarmanus MÅSTE komma direkt från transkriptet.
+KRITISKT VIKTIGT: Omformulera alltid innehållet med egna ord. Citera ALDRIG ordagrant från källan (förutom lagtext och rättsprinciper). Skapa originalt utbildningsmaterial baserat på de juridiska begrepp och principer som framgår av transkriptet.
 
-VIKTIGT OM TALARMANUS: Skapa alltid VÄLDIGT UTFÖRLIGA talarmanus. Användaren vill helre börja med mycket detaljer och själv skala ned efter behov. Talarmanuset ska innehålla:
-- Alla viktiga detaljer från transkriptet
-- Kompletterande förklaringar och kontext
-- Konkreta exempel som nämns i transkriptet
-- Praktiska konsekvenser och åtgärder
-- Fullständiga formuleringar, inte korta stolpar
+TALARMANUS: Skapa väldigt utförliga talarmanus för varje slide. Talarmanuset ska:
+- Förklara juridiska begrepp med egna ord och pedagogiska exempel
+- Ge konkreta tillämpningsscenarier för entreprenadjurister
+- Inkludera relevanta lagrum, rättsfall och doktrin som nämns
+- Formuleras som ett sammanhängande, välstrukturerat föreläsningsmanus
+- Vara redo att läsas upp som röstinspelning (naturligt talspråk, inga förkortningar)
 
-Returnera EXAKT ett JSON-objekt (ingen markdown, inga kodblock) med denna struktur:
+Tillgängliga layouttyper (välj lämplig per slide):
+- "content" — rubrik + punktlista (standard innehållsslide)
+- "section" — delseparator med stor rubrik (inför nytt avsnitt)
+- "quote" — citatslide för lagtext, domslut eller viktiga citat
+- "closing" — avslutning (reserveras för sista sliden)
+
+Returnera EXAKT ett JSON-objekt (ingen markdown, inga kodblock):
 {
-  "title": "Titel baserad på transkriptets ämne",
+  "title": "Presentation om [ämne]",
+  "subtitle": "Entreprenadjuristens perspektiv",
   "slides": [
     {
+      "layoutType": "section",
+      "title": "Del 1: Grundläggande begrepp",
+      "speakerNotes": "Välkomna. I den här delen..."
+    },
+    {
+      "layoutType": "content",
       "title": "Slide-titel",
-      "bullets": ["Punkt från transkriptet", "Punkt 2", "Punkt 3"],
-      "speakerNotes": "UTFÖRLIGT talermanus med alla detaljer, exempel och förklaringar från transkriptet."
+      "bullets": ["Juridisk punkt 1", "Punkt 2", "Punkt 3"],
+      "speakerNotes": "Utförligt talarmanus redo för röstinspelning..."
+    },
+    {
+      "layoutType": "quote",
+      "quoteText": "Lagtexten eller det viktiga citatet",
+      "quoteSource": "Källa, t.ex. AB 04 kap 5 § 1",
+      "speakerNotes": "Förklaring av citatet..."
     }
   ]
 }
 
 Riktlinjer:
-- Skapa 10-20+ slides beroende på transkriptets längd
-- **Max 4-5 bullet points per slide** — om det finns mer information, dela upp på fler slides
-- Talarmanuset ska återge talarens poänger, förklaringar och exempel — inte dina egna
-- Behåll facktermer, namn, lagrum och specifika detaljer exakt som de nämns
-- Strukturera innehållet i en logisk ordning som följer transkriptets upplägg
-- Första sliden: titelsida med ämnet
-- Sista sliden: sammanfattning av de viktigaste punkterna från transkriptet
-- Om talaren ger konkreta exempel eller hänvisar till specifika fall — inkludera dem ordagrant
-- Skriv talarmanuset som instruktioner till en person som ska hålla samma presentation, med talarens egna formuleringar och argument
-- Formulera bullet points och titlar så att byggentreprenörer förstår dem direkt — undvik onödig juridisk jargong
-- Lyft fram praktiska konsekvenser: vad ska byggaren GÖRA annorlunda?
-- Se till att JSON-objektet är komplett och korrekt formaterat. Avsluta ALLTID med stängda klamrar.${instructions ? `\n\nANVÄNDARENS SPECIFIKA INSTRUKTIONER (prioritera dessa):\n${instructions}` : ""}`;
+- 12-25 slides beroende på innehållets omfattning
+- Börja med en "section"-slide som ger en innehållsöversikt
+- Max 4-5 bullets per "content"-slide — dela upp vid mer innehåll
+- Använd "section"-slides för att markera tydliga avsnittsskiften
+- Använd "quote"-slides sparsamt för viktiga lagrum eller domslut
+- Avsluta med en sammanfattnings-"content"-slide
+- Talarmanus ska vara på naturligt talspråk, redo att läsas upp
+- Se till att JSON är komplett med stängda klamrar${instructions ? `\n\nANVÄNDARENS INSTRUKTIONER (prioritera dessa):\n${instructions}` : ""}`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
